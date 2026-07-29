@@ -49,8 +49,11 @@
     .share-btn-group { display: flex; gap: 6px; flex-wrap: wrap; }
     .share-btn { font-size: 0.75rem; padding: 5px 12px; border-radius: 999px; border: 1px solid #e0dad1; background: #fdfbf9; color: #555; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
     .share-btn:hover { background: #2d4a3e; color: #fff; border-color: #2d4a3e; }
-    .yt-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; margin: 16px 0; background: #000; }
+    .yt-card { margin: 16px 0; padding: 14px; border-radius: 12px; background: #fdfbf9; border: 1px solid #e0dad1; text-align: center; }
+    .yt-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 10px; background: #000; margin-bottom: 8px; }
     .yt-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+    .yt-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: #cc181e; color: #ffffff; text-decoration: none; border-radius: 999px; font-size: 0.85rem; font-weight: 600; border: none; cursor: pointer; }
+    .yt-btn:hover { background: #aa1318; }
     .image-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin: 16px 0; }
     .gallery-img { width: 100%; height: 160px; object-fit: cover; border-radius: 10px; cursor: pointer; border: 1px solid #e0dad1; transition: transform 0.2s; }
     .gallery-img:hover { transform: scale(1.02); }
@@ -105,13 +108,16 @@
     }
     function getYoutubeId(url) {
       if (!url) return null;
-      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+      const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\|(?:v|e(?:mbed)?|shorts)\/?|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
       const match = url.match(regExp);
-      return (match && match[2].length === 11) ? match[2] : null;
+      return match ? match[1] : null;
     }
     function openImgModal(src) {
       document.getElementById("modalImg").src = src;
       document.getElementById("imgModal").style.display = "flex";
+    }
+    function handleImgError(imgEl) {
+      imgEl.style.display = "none";
     }
     function renderSidebar() {
       const masters = ["全部", ...mastersList];
@@ -158,8 +164,17 @@
       }
       const shareUrl = window.location.href;
       const ytId = getYoutubeId(article.youtube);
-      const ytHtml = ytId ? `<div class="yt-container"><iframe src="https://www.youtube.com/embed/${ytId}" allowfullscreen></iframe></div>` : '';
-      const imagesHtml = (article.images && article.images.length) ? `<div class="image-gallery">${article.images.map(img => `<img class="gallery-img" src="${img}" onclick="openImgModal('${img}')" alt="文章插圖">`).join('')}</div>` : '';
+      let ytHtml = "";
+      if (ytId) {
+        if (window.location.protocol === "file:") {
+          ytHtml = `<div class="yt-card"><a href="${article.youtube}" target="_blank" class="yt-btn">▶️ 前往 YouTube 觀看《${article.title}》講記</a></div>`;
+        } else {
+          ytHtml = `<div class="yt-card"><div class="yt-container"><iframe src="https://www.youtube-nocookie.com/embed/${ytId}" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div><a href="${article.youtube}" target="_blank" class="yt-btn">▶️ 前往 YouTube 觀看原影片</a></div>`;
+        }
+      } else if (article.youtube) {
+        ytHtml = `<div class="yt-card"><a href="${article.youtube}" target="_blank" class="yt-btn">▶️ 前往 YouTube 觀看影片</a></div>`;
+      }
+      const imagesHtml = (article.images && article.images.length) ? `<div class="image-gallery">${article.images.map(img => `<img class="gallery-img" src="${img}" referrerpolicy="no-referrer" onerror="handleImgError(this)" onclick="openImgModal('${img}')" alt="文章插圖">`).join('')}</div>` : '';
       detailArea.innerHTML = `<div class="detail-top-bar"><button class="back-btn" onclick="renderList(true)">← 返回文章列表</button><div class="share-btn-group"><button class="share-btn" onclick="copyShareUrl('${shareUrl}')">🔗 複製連結</button><button class="share-btn" onclick="shareToLine('${shareUrl}', '${article.title}')">💬 Line</button><button class="share-btn" onclick="shareToNative('${shareUrl}', '${article.title}')">📲 分享</button></div></div><div style="font-size: 0.8rem; font-weight: 700; color: #2d4a3e; margin-bottom: 4px;">👤 ${article.master}</div><h2 class="detail-title">${article.title}</h2><div class="tag-container" style="margin-bottom: 12px;">${article.tags.map(t => `<span class="tag-btn">#${t}</span>`).join("")}</div>${ytHtml}${imagesHtml}<div class="detail-content">${article.content}</div>`;
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
