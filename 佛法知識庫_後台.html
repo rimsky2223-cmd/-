@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>佛法知識庫 · 後台管理系統</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #fcfbf9;
+      color: #2c2c2c;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
+      line-height: 1.5;
+    }
+
+    .header {
+      position: sticky; top: 0; z-index: 30;
+      background: rgba(252, 251, 249, 0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid #e7e3dc;
+      padding: 12px 16px;
+    }
+    .header-container {
+      max-width: 800px; margin: 0 auto;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .brand { display: flex; align-items: center; gap: 8px; color: #1c1c1c; }
+    .brand-title { font-size: 1.25rem; font-weight: 700; }
+
+    .layout { max-width: 800px; margin: 0 auto; padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; }
+
+    .admin-card { background: #ffffff; border: 1px solid #e7e3dc; border-radius: 16px; padding: 20px; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { font-size: 0.8125rem; font-weight: 700; color: #8a8075; margin-bottom: 6px; display: block; }
+    .form-input, .form-select, .form-textarea { width: 100%; padding: 10px 14px; background: #fdfbf9; border: 1px solid #e0dad1; border-radius: 10px; font-size: 0.875rem; outline: none; }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: #b7794c; }
+    .form-textarea { height: 160px; resize: vertical; }
+
+    .btn-primary { background: #2d4a3e; color: #ffffff; border: none; padding: 10px 20px; border-radius: 999px; font-weight: 600; font-size: 0.875rem; cursor: pointer; }
+    .btn-primary:hover { background: #1e332b; }
+    .btn-generate { background: #b7794c; color: #ffffff; border: none; padding: 12px 24px; border-radius: 999px; font-weight: 700; font-size: 0.95rem; cursor: pointer; }
+    .btn-generate:hover { background: #96613b; }
+    .btn-secondary { background: #f4f0e8; color: #5a554c; border: 1px solid #e0dad1; padding: 6px 14px; border-radius: 999px; font-size: 0.8125rem; cursor: pointer; }
+    .btn-secondary:hover { background: #e7e3dc; }
+    .btn-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; padding: 6px 14px; border-radius: 999px; font-size: 0.8125rem; cursor: pointer; }
+    .btn-danger:hover { background: #fca5a5; }
+
+    .tag-input-box { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 12px; background: #fdfbf9; border: 1px solid #e0dad1; border-radius: 10px; min-height: 42px; align-items: center; }
+    .tag-chip { background: #2d4a3e; color: white; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; display: flex; align-items: center; gap: 4px; }
+    .tag-chip-remove { border: none; background: none; color: white; cursor: pointer; font-size: 0.75rem; }
+
+    .admin-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #f0ece5; }
+  </style>
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-container">
+      <div class="brand">
+        <span>⚙️</span>
+        <h1 class="brand-title">佛法知識庫 · 管理後台</h1>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    
+    <!-- 導出無後台網頁 -->
+    <div class="admin-card" style="background: #faf7f2; border-color: #dcd4c9; text-align: center;">
+      <h3 style="font-size: 1.1rem; font-weight: 700; color: #2d4a3e; margin-bottom: 4px;">對外發布網頁</h3>
+      <p style="font-size: 0.85rem; color: #666; margin-bottom: 14px;">點擊下方按鈕，直接下載一個**完全獨立、不帶後台功能**的純前台 HTML 網頁 (index.html)。</p>
+      <button class="btn-generate" onclick="generateCleanHTML()">🌐 導出對外發布版 HTML (純前台)</button>
+    </div>
+
+    <!-- 新增/編輯文章表單 -->
+    <div class="admin-card">
+      <h2 id="formTitle" style="font-size: 1.25rem; font-weight: 700; margin-bottom: 16px; color: #2d4a3e;">新增文章</h2>
+      
+      <div class="form-group">
+        <label class="form-label">選擇大分類（法師）</label>
+        <div style="display: flex; gap: 8px;">
+          <select id="articleMasterSelect" class="form-select"></select>
+          <input type="text" id="newMasterInput" class="form-input" placeholder="新增其他法師" style="width: 140px;">
+          <button class="btn-secondary" onclick="addNewMaster()" style="white-space: nowrap;">新增法師</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">小標題（文章名稱）</label>
+        <input type="text" id="articleTitleInput" class="form-input" placeholder="例如：修行的六個要點_打坐方法元音老人講述">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">次標題 Tag 標籤（輸入後按 Enter 新增）</label>
+        <div class="tag-input-box" id="tagBox">
+          <div id="tagChips" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+          <input type="text" id="tagInput" style="border: none; background: transparent; outline: none; font-size: 0.875rem; flex: 1; min-width: 120px;" placeholder="輸入 Tag 按 Enter">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">文章內文</label>
+        <textarea id="articleContentInput" class="form-textarea" placeholder="輸入法語或講記內容..."></textarea>
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <button id="saveArticleBtn" class="btn-primary" onclick="saveArticle()">儲存文章</button>
+        <button id="cancelEditBtn" class="btn-secondary" onclick="resetForm()" style="display: none;">取消編輯</button>
+      </div>
+    </div>
+
+    <!-- 文章管理列表 -->
+    <div class="admin-card">
+      <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 12px;">現有文章列表 (<span id="totalArticlesCount">0</span> 篇)</h3>
+      <div id="adminArticleList"></div>
+    </div>
+
+    <!-- 備份/匯入 -->
+    <div class="admin-card" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+      <button class="btn-secondary" onclick="exportData()">📥 匯出 JSON 資料備份</button>
+      <button class="btn-secondary" onclick="document.getElementById('importFileInput').click()">📤 匯入 JSON 資料</button>
+      <button class="btn-danger" onclick="clearStorageAndReset()" style="margin-left: auto;">⚠️ 重設預設值</button>
+      <input type="file" id="importFileInput" style="display: none;" accept=".json" onchange="importData(event)">
+    </div>
+
+  </div>
+
+  <script>
+    const defaultArticles = [
+      { id: "1", master: "元音老人", title: "修行的六個要點_打坐方法元音老人講述", tags: ["打坐", "持咒", "元音老人"], content: "上座時用金剛持的方法，即嘴唇微動持咒，不出聲。因為出聲念咒傷氣，默念傷血。我們修法首先要注意身體，不能把身體弄壞，所以打坐、修行要把身體保護好。持咒的快慢是每分鐘10至12次。念的時侯，要心念耳聞，就是一個字一個字的從心裏過..." },
+      { id: "2", master: "生如法師", title: "楞嚴經奧義摘要 生如法師", tags: ["楞嚴經", "唯識", "生如法師"], content: "後腦處二次成的像叫作影子，我們看見和了別的都是影子，覺得這個影子就是外邊的實物，因為和外邊實物一模一樣，看不出是虛幻出來的，於是我們所有人就把影子當作真實的..." },
+      { id: "3", master: "印光大師", title: "印光大師文鈔菁華錄", tags: ["持咒", "淨土", "念佛", "印光大師"], content: "持咒一法，只可作助行。不可將念佛為兼帶，而以持咒作為正行。持咒法門，雖然也是不可思議，但是凡夫往生，全在信願真切，與彌陀宏誓大願，感應道交，而蒙佛接引。" },
+      { id: "4", master: "淨界法師", title: "楞嚴經修學法要 淨界法師心得", tags: ["楞嚴經", "淨土", "念佛"], content: "為什麼要研究《楞嚴經》？一言以蔽之就是：我們必須把過去「凡夫的世界」，提升到「聖人的世界」─「轉凡成聖」。不迷：是一種智慧的觀照；不取：是一種禪定的安住；不動：是持戒。" },
+      { id: "5", master: "淨界法師", title: "淨界法師講念佛", tags: ["靈峰宗論", "蕅益大師", "念佛"], content: "蕅益大師在《靈峰宗論》裡講了一個故事：在明朝有一個居士，做生意、貿易，跟一個地方官關係非常好，官處處挺護他，他就廣做非法..." },
+      { id: "6", master: "宣化上人", title: "宣化上人：脾氣、病毒與體內眾生的直接連結（投生去做畜生）", tags: ["宣化上人", "吃肉", "慈悲心", "眾生"], content: "美國萬佛聖城的宣化上人，是近代極少數花極大篇幅、非常直白地探討體內「八萬四千蟲」與「心性」關係的法師。體內蟲子就是你的怨親債主：上人指出，人為什麼會生病？因為人一發脾氣、一吃肉，體內的眾生就會受苦投生去做畜生..." },
+      { id: "7", master: "宣化上人", title: "宣化上人 - 上人與台灣大仙寺開參老和尚打機鋒的珍貴錄音", tags: ["陳有宏", "開參老和尚"], content: "鬼有鬼王在管，開參老和尚說..." }
+    ];
+
+    let rawData = localStorage.getItem('dharma_articles');
+    let articlesData = [];
+
+    if (rawData) {
+      try { articlesData = JSON.parse(rawData); } catch(e) { articlesData = defaultArticles; }
+    } else { articlesData = defaultArticles; }
+
+    articlesData = articlesData.map((item, idx) => ({
+      id: String(item.id || Date.now() + idx),
+      master: item.master || item.law || item.author || "未分類法師",
+      title: item.title || "無標題文章",
+      tags: Array.isArray(item.tags) ? item.tags : [],
+      content: item.content || ""
+    }));
+
+    let mastersList = JSON.parse(localStorage.getItem('dharma_masters')) || [];
+    const existingMasters = Array.from(new Set(articlesData.map(a => a.master)));
+    mastersList = Array.from(new Set([...mastersList, ...existingMasters]));
+
+    let editingArticleId = null;
+    let currentFormTags = [];
+
+    function persistData() {
+      localStorage.setItem('dharma_articles', JSON.stringify(articlesData));
+      localStorage.setItem('dharma_masters', JSON.stringify(mastersList));
+    }
+    persistData();
+
+    function renderAdmin() {
+      const select = document.getElementById('articleMasterSelect');
+      select.innerHTML = mastersList.map(m => `<option value="${m}">${m}</option>`).join('');
+      document.getElementById('totalArticlesCount').innerText = articlesData.length;
+
+      const adminList = document.getElementById('adminArticleList');
+      adminList.innerHTML = articlesData.map(a => `
+        <div class="admin-item">
+          <div style="flex: 1; padding-right: 12px; overflow: hidden;">
+            <span style="font-size: 0.75rem; background: #2d4a3e; color: white; padding: 2px 8px; border-radius: 4px; margin-right: 6px; display: inline-block;">${a.master}</span>
+            <strong style="font-size: 0.9rem;">${a.title}</strong>
+          </div>
+          <div style="display: flex; gap: 8px; flex-shrink: 0;">
+            <button class="btn-secondary" onclick="editArticle('${a.id}')">編輯</button>
+            <button class="btn-danger" onclick="deleteArticle('${a.id}')">刪除</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function addNewMaster() {
+      const val = document.getElementById('newMasterInput').value.trim();
+      if (val && !mastersList.includes(val)) {
+        mastersList.push(val);
+        document.getElementById('newMasterInput').value = '';
+        persistData();
+        renderAdmin();
+      }
+    }
+
+    const tagInput = document.getElementById('tagInput');
+    tagInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const val = tagInput.value.trim();
+        if (val && !currentFormTags.includes(val)) {
+          currentFormTags.push(val);
+          tagInput.value = '';
+          renderFormTags();
+        }
+      }
+    });
+
+    function renderFormTags() {
+      const container = document.getElementById('tagChips');
+      container.innerHTML = currentFormTags.map((t, idx) => `
+        <span class="tag-chip">
+          #${t}
+          <button class="tag-chip-remove" onclick="removeFormTag(${idx})">✕</button>
+        </span>
+      `).join('');
+    }
+
+    function removeFormTag(idx) { currentFormTags.splice(idx, 1); renderFormTags(); }
+
+    function saveArticle() {
+      const master = document.getElementById('articleMasterSelect').value;
+      const title = document.getElementById('articleTitleInput').value.trim();
+      const content = document.getElementById('articleContentInput').value.trim();
+
+      if (!title) { alert('請輸入文章標題'); return; }
+
+      if (editingArticleId !== null) {
+        const idx = articlesData.findIndex(a => String(a.id) === String(editingArticleId));
+        if (idx !== -1) articlesData[idx] = { id: String(editingArticleId), master, title, tags: [...currentFormTags], content };
+      } else {
+        articlesData.unshift({ id: String(Date.now()), master, title, tags: [...currentFormTags], content });
+      }
+
+      persistData();
+      resetForm();
+      renderAdmin();
+      alert('儲存成功！');
+    }
+
+    function editArticle(id) {
+      const a = articlesData.find(item => String(item.id) === String(id));
+      if (!a) { alert('找不到該篇文章！'); return; }
+
+      editingArticleId = String(a.id);
+      document.getElementById('formTitle').innerText = '編輯文章';
+      document.getElementById('articleMasterSelect').value = a.master;
+      document.getElementById('articleTitleInput').value = a.title;
+      document.getElementById('articleContentInput').value = a.content;
+      currentFormTags = [...a.tags];
+      renderFormTags();
+
+      document.getElementById('saveArticleBtn').innerText = '更新文章';
+      document.getElementById('cancelEditBtn').style.display = 'inline-block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function deleteArticle(id) {
+      if (confirm('確定要刪除這篇文章嗎？')) {
+        articlesData = articlesData.filter(a => String(a.id) !== String(id));
+        persistData();
+        renderAdmin();
+      }
+    }
+
+    function resetForm() {
+      editingArticleId = null;
+      document.getElementById('formTitle').innerText = '新增文章';
+      document.getElementById('articleTitleInput').value = '';
+      document.getElementById('articleContentInput').value = '';
+      currentFormTags = [];
+      renderFormTags();
+      document.getElementById('saveArticleBtn').innerText = '儲存文章';
+      document.getElementById('cancelEditBtn').style.display = 'none';
+    }
+
+    function clearStorageAndReset() {
+      if (confirm('確定要清空快取並還原為預設範例資料嗎？')) {
+        localStorage.removeItem('dharma_articles');
+        localStorage.removeItem('dharma_masters');
+        location.reload();
+      }
+    }
+
+    function exportData() {
+      const blob = new Blob([JSON.stringify(articlesData, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `佛法知識庫_備份_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+    }
+
+    function importData(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const imported = JSON.parse(evt.target.result);
+          if (Array.isArray(imported)) {
+            articlesData = imported.map((item, idx) => ({
+              id: String(item.id || Date.now() + idx),
+              master: item.master || item.law || item.author || "未分類法師",
+              title: item.title || "無標題文章",
+              tags: Array.isArray(item.tags) ? item.tags : [],
+              content: item.content || ""
+            }));
+            const importedMasters = Array.from(new Set(articlesData.map(a => a.master)));
+            mastersList = Array.from(new Set([...mastersList, ...importedMasters]));
+            persistData();
+            renderAdmin();
+            alert(`成功匯入 ${articlesData.length} 篇文章！`);
+          }
+        } catch {
+          alert('JSON 解析失敗，請確認檔案格式是否正確。');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // 🌐 導出「完全不含後台功能、手機版點擊完全修正」的獨立純前台網頁
+    function generateCleanHTML() {
+      const strArticles = JSON.stringify(articlesData);
+      const strMasters = JSON.stringify(mastersList);
+
+      const html = '<!DOCTYPE html>\n' +
+'<html lang="zh-Hant">\n' +
+'<head>\n' +
+'  <meta charset="UTF-8">\n' +
+'  <meta name="viewport" content="width=device-width, initial-scale=1">\n' +
+'  <title>佛法知識庫</title>\n' +
+'  <style>\n' +
+'    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }\n' +
+'    body { background-color: #fcfbf9; color: #2c2c2c; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif; line-height: 1.5; }\n' +
+'    .header { position: sticky; top: 0; z-index: 30; background: rgba(252, 251, 249, 0.95); backdrop-filter: blur(8px); border-bottom: 1px solid #e7e3dc; padding: 12px 16px; }\n' +
+'    .header-container { max-width: 900px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }\n' +
+'    .brand { display: flex; align-items: center; gap: 8px; cursor: pointer; text-decoration: none; color: #1c1c1c; }\n' +
+'    .brand-title { font-size: 1.25rem; font-weight: 700; }\n' +
+'    .search-box { position: relative; flex: 1; max-width: 320px; min-width: 220px; }\n' +
+'    .search-input { width: 100%; padding: 8px 32px 8px 36px; background: #ffffff; border: 1px solid #e0dad1; border-radius: 999px; font-size: 0.875rem; outline: none; }\n' +
+'    .search-input:focus { border-color: #b7794c; }\n' +
+'    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 0.8rem; color: #999; }\n' +
+'    .clear-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); border: none; background: none; cursor: pointer; color: #999; display: none; }\n' +
+'    .layout { max-width: 900px; margin: 0 auto; padding: 24px 16px; display: flex; flex-direction: column; gap: 24px; }\n' +
+'    @media (min-width: 640px) { .layout { flex-direction: row; } }\n' +
+'    .sidebar { width: 100%; }\n' +
+'    @media (min-width: 640px) { .sidebar { width: 180px; flex-shrink: 0; } }\n' +
+'    .sidebar-inner { position: sticky; top: 80px; background: #ffffff; border: 1px solid #e7e3dc; border-radius: 16px; padding: 12px; }\n' +
+'    .sidebar-title { font-size: 0.75rem; font-weight: 700; color: #8a8075; margin-bottom: 8px; padding: 0 4px; }\n' +
+'    .master-btn { width: 100%; text-align: left; padding: 8px 12px; border: none; background: transparent; border-radius: 10px; font-size: 0.875rem; cursor: pointer; color: #4a4a4a; display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }\n' +
+'    .master-btn:hover { background: #f4f0e8; }\n' +
+'    .master-btn.active { background: #2d4a3e; color: #ffffff; font-weight: 600; }\n' +
+'    .master-count { font-size: 0.75rem; opacity: 0.7; }\n' +
+'    .main-content { flex: 1; min-width: 0; }\n' +
+'    .master-card { background: #ffffff; border: 1px solid #e7e3dc; border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }\n' +
+'    .master-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid #f0ece5; pointer-events: none; }\n' +
+'    .master-title { font-size: 1.15rem; font-weight: 700; color: #2d4a3e; display: flex; align-items: center; gap: 6px; }\n' +
+'    .article-count-badge { font-size: 0.75rem; background: #f4f0e8; color: #8a8075; padding: 2px 8px; border-radius: 999px; }\n' +
+'    .article-item { position: relative; z-index: 10; padding: 12px; border-radius: 12px; transition: background 0.15s; cursor: pointer; margin-bottom: 4px; display: block; }\n' +
+'    .article-item:hover, .article-item:active { background: #fbf9f5; }\n' +
+'    .article-title { font-size: 1rem; font-weight: 600; color: #1a1a1a; margin-bottom: 6px; pointer-events: none; }\n' +
+'    .article-item:hover .article-title { color: #b7794c; }\n' +
+'    .article-snippet { font-size: 0.8125rem; color: #555; margin-bottom: 8px; line-height: 1.6; pointer-events: none; }\n' +
+'    .tag-container { display: flex; flex-wrap: wrap; gap: 6px; position: relative; z-index: 15; }\n' +
+'    .tag-btn { font-size: 0.75rem; background: #f4f0e8; color: #6b635b; border: 1px solid #e0dad1; padding: 2px 10px; border-radius: 999px; cursor: pointer; }\n' +
+'    .tag-btn:hover { background: #b7794c; color: #ffffff; border-color: #b7794c; }\n' +
+'    mark.highlight { background-color: #fef08a; color: #854d0e; padding: 0 3px; border-radius: 3px; font-weight: 700; }\n' +
+'    .detail-view { background: #ffffff; border: 1px solid #e7e3dc; border-radius: 16px; padding: 24px; }\n' +
+'    .back-btn { background: none; border: none; color: #b7794c; font-size: 0.875rem; font-weight: 600; cursor: pointer; margin-bottom: 16px; padding: 4px 0; }\n' +
+'    .detail-title { font-size: 1.5rem; font-weight: 700; color: #1a1a1a; margin-bottom: 12px; }\n' +
+'    .detail-content { font-size: 0.95rem; color: #3a3a3a; white-space: pre-wrap; line-height: 1.8; border-top: 1px solid #f0ece5; padding-top: 16px; margin-top: 16px; }\n' +
+'    .empty-msg { text-align: center; padding: 48px; color: #999; background: #ffffff; border-radius: 16px; border: 1px solid #e7e3dc; }\n' +
+'  </style>\n' +
+'</head>\n' +
+'<body>\n' +
+'  <header class="header">\n' +
+'    <div class="header-container">\n' +
+'      <div class="brand" id="brandBtn"><span>📖</span><h1 class="brand-title">佛法知識庫</h1></div>\n' +
+'      <div class="search-box">\n' +
+'        <span class="search-icon">🔍</span>\n' +
+'        <input type="text" id="searchInput" class="search-input" placeholder="搜尋文章、法師、關鍵字...">\n' +
+'        <button id="clearBtn" class="clear-btn">✕</button>\n' +
+'      </div>\n' +
+'    </div>\n' +
+'  </header>\n' +
+'  <div class="layout">\n' +
+'    <aside class="sidebar"><div class="sidebar-inner"><div class="sidebar-title">法師大分類</div><div id="masterNav"></div></div></aside>\n' +
+'    <main class="main-content"><div id="listArea"></div><div id="detailArea" class="detail-view" style="display: none;"></div></main>\n' +
+'  </div>\n' +
+'  <script>\n' +
+'    const articlesData = ' + strArticles + ';\n' +
+'    const mastersList = ' + strMasters + ';\n' +
+'    let currentQuery = ""; let selectedMaster = "全部";\n' +
+'    const searchInput = document.getElementById("searchInput");\n' +
+'    const clearBtn = document.getElementById("clearBtn");\n' +
+'    const masterNav = document.getElementById("masterNav");\n' +
+'    const listArea = document.getElementById("listArea");\n' +
+'    const detailArea = document.getElementById("detailArea");\n' +
+'    const brandBtn = document.getElementById("brandBtn");\n' +
+'    function highlight(text, query) {\n' +
+'      if (!query || !query.trim()) return text;\n' +
+'      const esc = query.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&");\n' +
+'      const reg = new RegExp("(" + esc + ")", "gi");\n' +
+'      return text.replace(reg, "<mark class=\\"highlight\\">$1</mark>");\n' +
+'    }\n' +
+'    function getSmartSnippet(content, query) {\n' +
+'      if (!query || !query.trim()) return content.length > 90 ? content.slice(0, 90) + "..." : content;\n' +
+'      const q = query.trim().toLowerCase();\n' +
+'      const matchIndex = content.toLowerCase().indexOf(q);\n' +
+'      if (matchIndex === -1) return content.length > 90 ? content.slice(0, 90) + "..." : content;\n' +
+'      const start = Math.max(0, matchIndex - 40);\n' +
+'      const end = Math.min(content.length, matchIndex + q.length + 40);\n' +
+'      let snippet = content.slice(start, end);\n' +
+'      if (start > 0) snippet = "..." + snippet;\n' +
+'      if (end < content.length) snippet = snippet + "...";\n' +
+'      return snippet;\n' +
+'    }\n' +
+'    function renderSidebar() {\n' +
+'      const masters = ["全部", ...mastersList];\n' +
+'      masterNav.innerHTML = masters.map(m => {\n' +
+'        const count = m === "全部" ? articlesData.length : articlesData.filter(a => a.master === m).length;\n' +
+'        const isActive = selectedMaster === m ? "active" : "";\n' +
+'        return `<button class="master-btn ${isActive}" onclick="selectMaster(\'${m}\')"><span>${m}</span><span class="master-count">${count}</span></button>`;\n' +
+'      }).join("");\n' +
+'    }\n' +
+'    function renderList() {\n' +
+'      detailArea.style.display = "none"; listArea.style.display = "block";\n' +
+'      const q = currentQuery.toLowerCase().trim();\n' +
+'      let filtered = articlesData.filter(a => {\n' +
+'        const matchMaster = selectedMaster === "全部" || a.master === selectedMaster;\n' +
+'        const matchQuery = !q || a.title.toLowerCase().includes(q) || a.master.toLowerCase().includes(q) || a.content.toLowerCase().includes(q) || a.tags.some(t => t.toLowerCase().includes(q));\n' +
+'        return matchMaster && matchQuery;\n' +
+'      });\n' +
+'      if (filtered.length === 0) { listArea.innerHTML = `<div class="empty-msg">找不到符合「${currentQuery}」的文章</div>`; return; }\n' +
+'      const groups = {};\n' +
+'      filtered.forEach(a => { if (!groups[a.master]) groups[a.master] = []; groups[a.master].push(a); });\n' +
+'      let html = "";\n' +
+'      Object.entries(groups).forEach(([master, articles]) => {\n' +
+'        html += `<div class="master-card"><div class="master-header"><div class="master-title">👤 ${highlight(master, currentQuery)}</div><span class="article-count-badge">${articles.length} 篇</span></div><div>${articles.map(a => {\n' +
+'          const rawSnippet = getSmartSnippet(a.content, currentQuery);\n' +
+'          const snippetHTML = highlight(rawSnippet, currentQuery);\n' +
+'          return `<div class="article-item" onclick="showDetail(event, \'${a.id}\')"><div class="article-title">${highlight(a.title, currentQuery)}</div><div class="article-snippet">${snippetHTML}</div><div class="tag-container">${a.tags.map(t => `<button class="tag-btn" onclick="handleTagClick(event, \'${t}\')">#${highlight(t, currentQuery)}</button>`).join("")}</div></div>`;\n' +
+'        }).join("")}</div></div>`;\n' +
+'      });\n' +
+'      listArea.innerHTML = html;\n' +
+'    }\n' +
+'    function showDetail(e, id) {\n' +
+'      if (e) e.stopPropagation();\n' +
+'      const article = articlesData.find(a => String(a.id) === String(id));\n' +
+'      if (!article) return;\n' +
+'      listArea.style.display = "none"; detailArea.style.display = "block";\n' +
+'      detailArea.innerHTML = `<button class="back-btn" onclick="renderList()">← 返回列表</button><div style="font-size: 0.8rem; font-weight: 700; color: #2d4a3e; margin-bottom: 4px;">👤 ${article.master}</div><h2 class="detail-title">${article.title}</h2><div class="tag-container" style="margin-bottom: 12px;">${article.tags.map(t => `<span class="tag-btn">#${t}</span>`).join("")}</div><div class="detail-content">${article.content}</div>`;\n' +
+'      window.scrollTo({ top: 0, behavior: "smooth" });\n' +
+'    }\n' +
+'    function handleTagClick(e, t) {\n' +
+'      if (e) e.stopPropagation();\n' +
+'      setQuery(t);\n' +
+'    }\n' +
+'    function selectMaster(m) { selectedMaster = m; renderSidebar(); renderList(); }\n' +
+'    function setQuery(q) { searchInput.value = q; currentQuery = q; clearBtn.style.display = q ? "block" : "none"; renderList(); }\n' +
+'    searchInput.addEventListener("input", (e) => { currentQuery = e.target.value; clearBtn.style.display = currentQuery ? "block" : "none"; renderList(); });\n' +
+'    clearBtn.addEventListener("click", () => setQuery(""));\n' +
+'    brandBtn.addEventListener("click", () => { selectedMaster = "全部"; setQuery(""); });\n' +
+'    renderSidebar(); renderList();\n' +
+'  <\/script>\n' +
+'</body>\n' +
+'</html>';
+
+      const blob = new Blob([html], { type: 'text/html' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `index.html`;
+      a.click();
+    }
+
+    renderAdmin();
+  </script>
+</body>
+</html>
