@@ -55,7 +55,8 @@
     .yt-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: #cc181e; color: #ffffff; text-decoration: none; border-radius: 999px; font-size: 0.85rem; font-weight: 600; border: none; cursor: pointer; }
     .yt-btn:hover { background: #aa1318; }
     .image-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin: 16px 0; }
-    .gallery-img { width: 100%; height: 160px; object-fit: cover; border-radius: 10px; cursor: pointer; border: 1px solid #e0dad1; transition: transform 0.2s; }
+    .img-wrapper { border-radius: 10px; border: 1px solid #e0dad1; overflow: hidden; height: 160px; background: #fdfbf9; }
+    .gallery-img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; transition: transform 0.2s; display: block; }
     .gallery-img:hover { transform: scale(1.02); }
     .img-modal { display: none; position: fixed; z-index: 999; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); justify-content: center; align-items: center; cursor: pointer; }
     .img-modal img { max-width: 90%; max-height: 90%; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
@@ -116,9 +117,6 @@
       document.getElementById("modalImg").src = src;
       document.getElementById("imgModal").style.display = "flex";
     }
-    function handleImgError(imgEl) {
-      imgEl.style.display = "none";
-    }
     function renderSidebar() {
       const masters = ["全部", ...mastersList];
       masterNav.innerHTML = masters.map(m => {
@@ -145,7 +143,8 @@
           const rawSnippet = getSmartSnippet(a.content, currentQuery);
           const snippetHTML = highlight(rawSnippet, currentQuery);
           const ytBadge = a.youtube ? '<span style="font-size:0.75rem; background:#fee2e2; color:#991b1b; padding:1px 6px; border-radius:4px; margin-left:6px;">🎬 影片</span>' : '';
-          const imgBadge = (a.images && a.images.length) ? `<span style="font-size:0.75rem; background:#e0f2fe; color:#0369a1; padding:1px 6px; border-radius:4px; margin-left:6px;">🖼️ ${a.images.length}張圖</span>` : '';
+          const validImgs = (a.images || []).filter(img => img && img.trim());
+          const imgBadge = validImgs.length ? `<span style="font-size:0.75rem; background:#e0f2fe; color:#0369a1; padding:1px 6px; border-radius:4px; margin-left:6px;">🖼️ ${validImgs.length}張圖</span>` : '';
           return `<div class="article-item" onclick="showDetail(event, '${a.id}')"><div class="article-title">${highlight(a.title, currentQuery)}${ytBadge}${imgBadge}</div><div class="article-snippet">${snippetHTML}</div><div class="tag-container">${a.tags.map(t => `<button class="tag-btn" onclick="handleTagClick(event, '${t}')">#${highlight(t, currentQuery)}</button>`).join("")}</div></div>`;
         }).join("")}</div></div>`;
       });
@@ -174,7 +173,8 @@
       } else if (article.youtube) {
         ytHtml = `<div class="yt-card"><a href="${article.youtube}" target="_blank" class="yt-btn">▶️ 前往 YouTube 觀看影片</a></div>`;
       }
-      const imagesHtml = (article.images && article.images.length) ? `<div class="image-gallery">${article.images.map(img => `<img class="gallery-img" src="${img}" referrerpolicy="no-referrer" onerror="handleImgError(this)" onclick="openImgModal('${img}')" alt="文章插圖">`).join('')}</div>` : '';
+      const validImages = (article.images || []).filter(img => img && img.trim());
+      const imagesHtml = validImages.length ? `<div class="image-gallery">${validImages.map(img => `<div class="img-wrapper"><img class="gallery-img" src="${img}" referrerpolicy="no-referrer" onerror="this.parentElement.remove()" onclick="openImgModal('${img}')" alt="文章插圖"></div>`).join('')}</div>` : '';
       detailArea.innerHTML = `<div class="detail-top-bar"><button class="back-btn" onclick="renderList(true)">← 返回文章列表</button><div class="share-btn-group"><button class="share-btn" onclick="copyShareUrl('${shareUrl}')">🔗 複製連結</button><button class="share-btn" onclick="shareToLine('${shareUrl}', '${article.title}')">💬 Line</button><button class="share-btn" onclick="shareToNative('${shareUrl}', '${article.title}')">📲 分享</button></div></div><div style="font-size: 0.8rem; font-weight: 700; color: #2d4a3e; margin-bottom: 4px;">👤 ${article.master}</div><h2 class="detail-title">${article.title}</h2><div class="tag-container" style="margin-bottom: 12px;">${article.tags.map(t => `<span class="tag-btn">#${t}</span>`).join("")}</div>${ytHtml}${imagesHtml}<div class="detail-content">${article.content}</div>`;
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
