@@ -89,6 +89,13 @@
     const detailArea = document.getElementById("detailArea");
     const brandBtn = document.getElementById("brandBtn");
     const sidebarArea = document.getElementById("sidebarArea");
+    function linkify(text) {
+      if (!text) return "";
+      const urlRegex = /(https?:\/\/[^\s<]+)/g;
+      return text.replace(urlRegex, function(url) {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: #0284c7; font-weight: 600; text-decoration: underline; word-break: break-all;" onclick="event.stopPropagation();">${url}</a>`;
+      });
+    }
     function highlight(text, query) {
       if (!query || !query.trim()) return text;
       const esc = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -152,7 +159,9 @@
       listArea.style.display = "none"; detailArea.style.display = "block";
       if (window.innerWidth < 640) sidebarArea.style.display = "none";
       if (history.pushState) {
-        const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + "?id=" + id;
+        const origin = window.location.origin;
+        const path = window.location.pathname.endsWith("/") ? window.location.pathname : window.location.pathname + "/";
+        const newUrl = `${origin}${path}?id=${id}`;
         window.history.pushState({ path: newUrl }, "", newUrl);
       }
       const shareUrl = window.location.href;
@@ -162,7 +171,7 @@
       if (ytId) ytHTML = `<div class="yt-card"><div class="yt-container"><iframe src="https://www.youtube.com/embed/${ytId}" allowfullscreen></iframe></div><a href="${article.youtube}" target="_blank" class="yt-btn">▶ 在 YouTube 觀看</a></div>`;
       let imgHTML = "";
       if (images.length > 0) imgHTML = `<div class="image-gallery">${images.map(img => `<div class="img-wrapper"><img src="${img}" class="gallery-img" onclick="openImgModal('${img}')"></div>`).join("")}</div>`;
-      detailArea.innerHTML = `<div class="detail-top-bar"><button class="back-btn" onclick="renderList(true)">← 返回文章列表</button><div class="share-btn-group"><button class="share-btn" onclick="copyShareUrl('${shareUrl}')">🔗 複製連結</button><button class="share-btn" onclick="shareToLine('${shareUrl}', '${article.title}')">💬 Line</button><button class="share-btn" onclick="shareToNative('${shareUrl}', '${article.title}')">📲 分享</button></div></div><div style="font-size: 0.8rem; font-weight: 700; color: #2d4a3e; margin-bottom: 4px;">👤 ${article.master}</div><h2 class="detail-title">${article.title}</h2><div class="tag-container" style="margin-bottom: 12px;">${tags.map(t => `<button class="tag-btn" onclick="handleTagClick(event, '${t}')">#${t}</button>`).join("")}</div>${ytHTML}${imgHTML}<div class="detail-content">${article.content}</div>`;
+      detailArea.innerHTML = `<div class="detail-top-bar"><button class="back-btn" onclick="renderList(true)">← 返回文章列表</button><div class="share-btn-group"><button class="share-btn" onclick="copyShareUrl('${shareUrl}')">🔗 複製連結</button><button class="share-btn" onclick="shareToLine('${shareUrl}', '${article.title}')">💬 Line</button><button class="share-btn" onclick="shareToNative('${shareUrl}', '${article.title}')">📲 分享</button></div></div><div style="font-size: 0.8rem; font-weight: 700; color: #2d4a3e; margin-bottom: 4px;">👤 ${article.master}</div><h2 class="detail-title">${article.title}</h2><div class="tag-container" style="margin-bottom: 12px;">${tags.map(t => `<button class="tag-btn" onclick="handleTagClick(event, '${t}')">#${t}</button>`).join("")}</div>${ytHTML}${imgHTML}<div class="detail-content">${linkify(article.content)}</div>`;
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
     function openImgModal(src) { document.getElementById("modalImg").src = src; document.getElementById("imgModal").style.display = "flex"; }
